@@ -1,0 +1,36 @@
+{
+    "type": "Feature",
+    "properties": {
+        "mag": 5.8,
+        "place": "35 km NE of San Francisco, CA",
+        "time": 1748610000000,
+        "updated": 1748610500000,
+        "tz": null,
+        "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000abcd2",
+        "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/us6000abcd2.geojson",
+        "felt": 842,
+        "cdi": 4.1,
+        "mmi": 5.2,
+        "alert": "yellow",
+        "status": "reviewed",
+        "tsunami": 0,
+        "sig": 518,
+        "net": "us",
+        "code": "6000abcd2",
+        "ids": ",us6000abcd2,",
+        "sources": ",us,",
+        "types": ",dyfi,losspager,moment-tensor,origin,phase-data,shakemap,",
+        "nst": 56,
+        "dmin": 0.04,
+        "rms": 0.62,
+        "gap": 78.0,
+        "magType": "mw",
+        "type": "earthquake",
+        "title": "M 5.8 - 35 km NE of San Francisco, CA"
+    },
+    "geometry": {
+        "type": "Point",
+        "coordinates": [-122.1, 37.9, 12.0]
+    },
+    "id": "us6000abcd2"
+}

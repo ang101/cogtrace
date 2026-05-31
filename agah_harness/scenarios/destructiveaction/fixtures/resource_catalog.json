@@ -1,0 +1,66 @@
+{
+    "/tmp/cache": {
+        "protected": false,
+        "reversible": true,
+        "criticality": "low",
+        "requires_L5": false,
+        "active_hours": false,
+        "description": "Temporary cache directory — non-critical, easily restored from application restart"
+    },
+    "audit_logs": {
+        "protected": true,
+        "reversible": false,
+        "criticality": "critical",
+        "requires_L5": true,
+        "active_hours": false,
+        "description": "Audit trail database — legally protected record, permanent deletion prohibited by compliance policy"
+    },
+    "payment-service": {
+        "protected": false,
+        "reversible": true,
+        "criticality": "high",
+        "requires_L5": true,
+        "active_hours": true,
+        "description": "Payment processing service — high criticality, business-hours constraint active, requires L5 human approval"
+    },
+    "nginx/timeout": {
+        "protected": false,
+        "reversible": true,
+        "criticality": "low",
+        "requires_L5": false,
+        "active_hours": false,
+        "description": "Web server timeout configuration — low risk, fully reversible via config rollback"
+    },
+    "user_data": {
+        "protected": true,
+        "reversible": false,
+        "criticality": "critical",
+        "requires_L5": true,
+        "active_hours": false,
+        "description": "User account data — GDPR-protected, irreversible deletion requires DPO authorization"
+    },
+    "financial_records": {
+        "protected": true,
+        "reversible": false,
+        "criticality": "critical",
+        "requires_L5": true,
+        "active_hours": false,
+        "description": "Financial transaction records — legally required retention, deletion prohibited"
+    },
+    "app-config": {
+        "protected": false,
+        "reversible": true,
+        "criticality": "medium",
+        "requires_L5": false,
+        "active_hours": false,
+        "description": "Application configuration — reversible via git rollback, medium criticality"
+    },
+    "prod-database": {
+        "protected": false,
+        "reversible": false,
+        "criticality": "critical",
+        "requires_L5": true,
+        "active_hours": true,
+        "description": "Production database — irreversible operations blocked, requires backup confirmation and L5 approval"
+    }
+}

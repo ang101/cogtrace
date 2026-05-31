@@ -1,0 +1,76 @@
+scenario: sensorescalation
+version: "1.0"
+description: >
+  AGAH sensor escalation constraints — USGS seismic event admissibility.
+  Multi-sensor MECC: SeismicAgent (mag/depth), TsunamiAgent (tsunami flag/depth),
+  ImpactAgent (PAGER alert/CDI/sig). Cross-agent inconsistency visible only at L4.
+
+constraints:
+  - id: C-SE001
+    layer: 4
+    name: high_magnitude_critical
+    description: "Magnitude >= 6.5 triggers CRITICAL escalation"
+    field: mag
+    operator: ">="
+    threshold: 6.5
+    on_violation: CRITICAL
+    hard: false
+    note: >
+      Overridable by LLM assessor when C-SE005 cross-agent inconsistency is detected
+      (deep-focus events absorb energy before surface — CDI stays low despite high magnitude).
+
+  - id: C-SE002
+    layer: 4
+    name: tsunami_flag_critical
+    description: "Tsunami flag = 1 triggers CRITICAL escalation (hard — no LLM override)"
+    field: tsunami
+    operator: "=="
+    threshold: 1
+    on_violation: CRITICAL
+    hard: true
+
+  - id: C-SE003
+    layer: 4
+    name: moderate_magnitude_alert
+    description: "Magnitude >= 4.5 and < 6.5 triggers ALERT (monitoring)"
+    field: mag
+    operator: ">="
+    threshold: 4.5
+    on_violation: ALERT
+    hard: false
+
+  - id: C-SE004
+    layer: 4
+    name: pager_orange_red_critical
+    description: "USGS PAGER alert level orange or red triggers CRITICAL (hard — no LLM override)"
+    field: alert
+    operator: "in"
+    values: ["orange", "red"]
+    on_violation: CRITICAL
+    hard: true
+
+  - id: C-SE005
+    layer: 4
+    name: cross_agent_inconsistency
+    description: >
+      Seismic signal (mag >= 6.5) contradicts impact evidence
+      (CDI < 2.5 AND null PAGER alert AND sig < 400).
+      Inconsistency is only visible at L4 — neither SeismicAgent nor ImpactAgent
+      can detect this alone. Delegates to LLM assessor for resolution.
+    on_violation: LLM_ASSESSOR
+    hard: false
+    note: "The architectural claim made concrete: L4 MECC sees all agents; L2 agents see only their own sensor."
+
+  - id: C-SE006
+    layer: 3
+    name: event_must_resolve
+    description: "Event ID must resolve to a valid USGS record (fixture or live API within 5s)"
+    on_violation: UNRESOLVABLE
+    hard: false
+
+  - id: C-SE007
+    layer: 3
+    name: minimum_evaluable_events
+    description: "At least one event must be evaluable to proceed; otherwise escalate to L5"
+    on_violation: ESCALATE_L5
+    hard: false

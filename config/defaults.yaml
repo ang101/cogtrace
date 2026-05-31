@@ -1,0 +1,6 @@
+﻿app_name: AGAH
+latency_target_seconds: 10
+live_api_timeout_seconds: 5
+scenario_default: citationintegrity
+weave_project: agah-hackathon
+anthropic_model: claude-sonnet-4-20250514

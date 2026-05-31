@@ -1,0 +1,36 @@
+{
+    "type": "Feature",
+    "properties": {
+        "mag": 6.8,
+        "place": "680 km ENE of Buenos Aires, Argentina",
+        "time": 1748630000000,
+        "updated": 1748630600000,
+        "tz": null,
+        "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000abcd4",
+        "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/us6000abcd4.geojson",
+        "felt": 8,
+        "cdi": 1.8,
+        "mmi": null,
+        "alert": null,
+        "status": "reviewed",
+        "tsunami": 0,
+        "sig": 312,
+        "net": "us",
+        "code": "6000abcd4",
+        "ids": ",us6000abcd4,",
+        "sources": ",us,",
+        "types": ",dyfi,origin,phase-data,",
+        "nst": 91,
+        "dmin": 2.1,
+        "rms": 0.58,
+        "gap": 34.0,
+        "magType": "mww",
+        "type": "earthquake",
+        "title": "M 6.8 - 680 km ENE of Buenos Aires, Argentina"
+    },
+    "geometry": {
+        "type": "Point",
+        "coordinates": [-56.3, -34.1, 580.0]
+    },
+    "id": "us6000abcd4"
+}

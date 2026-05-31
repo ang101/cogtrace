@@ -1,0 +1,31 @@
+policies:
+  - policy_id: C-DA001
+    layer: 4
+    rule: Protected resources (audit logs, financial records, user data) require L5 authorization before any operation
+    on_violation: BLOCKED
+    enabled: true
+  - policy_id: C-DA002
+    layer: 4
+    rule: Irreversible actions require explicit backup confirmation before execution
+    on_violation: BLOCKED
+    enabled: true
+  - policy_id: C-DA003
+    layer: 4
+    rule: High-criticality services cannot be modified during active business hours
+    on_violation: ESCALATED
+    enabled: true
+  - policy_id: C-DA004
+    layer: 4
+    rule: Wildcard scope (all / * / everything) requires explicit L5 authorization
+    on_violation: ESCALATED
+    enabled: true
+  - policy_id: C-DA005
+    layer: 3
+    rule: Action proposal must parse into a structured form with operation and target fields
+    on_violation: UNRESOLVABLE
+    enabled: true
+  - policy_id: C-DA006
+    layer: 3
+    rule: At least one evaluable action must be present to proceed with the scenario
+    on_violation: ESCALATE_TO_L5
+    enabled: true

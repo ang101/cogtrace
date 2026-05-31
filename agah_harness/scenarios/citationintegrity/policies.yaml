@@ -1,0 +1,42 @@
+﻿policies:
+  - policy_id: C001
+    layer: 4
+    rule: DOI must resolve to a real Crossref or PubMed record
+    on_violation: FABRICATED
+    enabled: true
+  - policy_id: C002
+    layer: 4
+    rule: Resolved title fuzzy-match must be at least 0.85
+    on_violation: MISMATCHED
+    enabled: true
+    threshold: 0.85
+  - policy_id: C003
+    layer: 4
+    rule: Year must match plus or minus 1
+    on_violation: MISMATCHED
+    enabled: true
+  - policy_id: C004
+    layer: 4
+    rule: Venue must match if provided
+    on_violation: MISMATCHED
+    enabled: true
+  - policy_id: C005
+    layer: 4
+    rule: Source abstract supports attributed claim semantic verification
+    on_violation: UNSUPPORTED_V2_ONLY
+    enabled: false
+  - policy_id: C008
+    layer: 3
+    rule: Citation must contain a parseable DOI or arXiv identifier
+    on_violation: NO_IDENTIFIER
+    enabled: true
+  - policy_id: C006
+    layer: 3
+    rule: API responds within 5 seconds or fallback to fixture
+    on_violation: FALLBACK_TO_FIXTURE
+    enabled: true
+  - policy_id: C007
+    layer: 3
+    rule: At least one citation must be verifiable to proceed
+    on_violation: ESCALATE_TO_L5
+    enabled: true

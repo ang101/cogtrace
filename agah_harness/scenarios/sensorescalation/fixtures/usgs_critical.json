@@ -1,0 +1,36 @@
+{
+    "type": "Feature",
+    "properties": {
+        "mag": 7.6,
+        "place": "55 km ESE of Sendai, Japan",
+        "time": 1748620000000,
+        "updated": 1748620800000,
+        "tz": null,
+        "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000abcd3",
+        "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/us6000abcd3.geojson",
+        "felt": 4820,
+        "cdi": 6.2,
+        "mmi": 7.1,
+        "alert": "orange",
+        "status": "reviewed",
+        "tsunami": 1,
+        "sig": 914,
+        "net": "us",
+        "code": "6000abcd3",
+        "ids": ",us6000abcd3,",
+        "sources": ",us,",
+        "types": ",dyfi,losspager,moment-tensor,origin,phase-data,shakemap,",
+        "nst": 142,
+        "dmin": 0.01,
+        "rms": 0.91,
+        "gap": 22.0,
+        "magType": "mww",
+        "type": "earthquake",
+        "title": "M 7.6 - 55 km ESE of Sendai, Japan"
+    },
+    "geometry": {
+        "type": "Point",
+        "coordinates": [142.1, 38.2, 10.0]
+    },
+    "id": "us6000abcd3"
+}

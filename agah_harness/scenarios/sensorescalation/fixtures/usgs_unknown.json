@@ -1,0 +1,36 @@
+{
+    "type": "Feature",
+    "properties": {
+        "mag": null,
+        "place": "Unknown location",
+        "time": null,
+        "updated": null,
+        "tz": null,
+        "url": null,
+        "detail": null,
+        "felt": null,
+        "cdi": null,
+        "mmi": null,
+        "alert": null,
+        "status": "unknown",
+        "tsunami": null,
+        "sig": null,
+        "net": "us",
+        "code": "unknown",
+        "ids": "",
+        "sources": "",
+        "types": "",
+        "nst": null,
+        "dmin": null,
+        "rms": null,
+        "gap": null,
+        "magType": null,
+        "type": "unknown",
+        "title": "Unknown event — event ID did not resolve to a USGS record"
+    },
+    "geometry": {
+        "type": "Point",
+        "coordinates": [0.0, 0.0, 0.0]
+    },
+    "id": "unknown"
+}
