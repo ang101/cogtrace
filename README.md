@@ -20,6 +20,58 @@ The result is a harness that is less like an org chart and more like a constrain
 
 ---
 
+## Why this architecture — token economics, model efficiency, and the distributed cognition thesis
+
+### The immediate problem: monolithic orchestrators are wasteful
+
+Most agentic systems today use a single large model as the orchestrator. That model receives the full context, reasons about what to do next, calls tools, receives results, and reasons again. Every step — including trivial routing decisions — pays full token cost for a frontier model.
+
+CogTrace's architecture changes this as a direct consequence of structure, not optimization. The MECC is not an LLM. It is a deterministic constraint checker that runs before any LLM call. In the citation integrity scenario:
+
+- **L3 constraints** fire first — does this citation have a parseable identifier at all? If not, retrieval is blocked before any API call is attempted.
+- **L4 constraints** fire next — does the DOI resolve? Does the title match? These checks are deterministic. No model call needed.
+- **The LLM assessor fires only on genuine ambiguity** — cross-agent inconsistency that no rule can resolve. In most runs, it never fires.
+
+In the sensor escalation scenario, three sensor agents each hold a narrow slice of evidence. The cross-sensor MECC is the only component that sees all three simultaneously — and it is deterministic. For four of the five test cases, constraints resolve the outcome without a model call. The LLM fires only for the structurally ambiguous case: deep-focus earthquake, contradicting sensor readings, null PAGER alert.
+
+This is a structural property of the architecture, not a tuning choice. When constraints are explicit and layered, most decisions are resolved before they become model calls. The token savings are a consequence of knowing what each layer is responsible for and enforcing it before escalating upward.
+
+### The end game: smaller specialized models outperform large generalists
+
+The deeper argument for this architecture is about what happens when each layer is occupied by a model scoped to that layer's representational function.
+
+A large generalist model forced to reason about goal-level objectives, workflow patterns, API contracts, and raw execution simultaneously faces structural disadvantages:
+
+- **Attention dilution** — relevant signals compete with irrelevant context across abstraction levels. The model attends to everything when it should attend to the layer's specific concern.
+- **Hallucination leakage** — uncertainty at one level propagates to another because the model holds both simultaneously. A model unsure whether an API exists may hallucinate confidence at the goal level.
+- **Context cost** — full-context reasoning at every step is expensive even when most of the context is irrelevant to the decision at hand. A workflow routing decision does not need to see raw execution logs.
+
+A small model scoped to a single layer does not have these problems. It only sees what its layer is responsible for. The parser never sees API state. The verifier never sees goal-level objectives. The MECC never executes anything. Each component can be calibrated within its own representational domain — a much tighter target than calibrating a general-purpose orchestrator across all levels simultaneously.
+
+The research trajectory supports this direction. Smaller, domain-focused models — fine-tuned or distilled for a narrow task — increasingly match or exceed large generalists on those tasks. The open question is what the principled basis for scoping should be. Job title is not it: "researcher" and "reviewer" have no natural boundary in a reasoning system. Abstraction level is: scope by what a component needs to perceive, what invariants it is responsible for enforcing, and what means-ends relations it is allowed to act on.
+
+CogTrace is built so any layer can be occupied by any model — or no model at all:
+
+| Layer | Currently | Could be |
+|---|---|---|
+| L5 Functional Purpose | Human escalation / goal config | Small goal-evaluation model, fine-tuned on mission objectives |
+| L4 Abstract Function | Deterministic MECC + LLM on ambiguity only | Constraint-specialized small model |
+| L3 Generalized Function | Deterministic orchestrator | Pattern-routing model, few-shot or fine-tuned |
+| L2 Physical Function | Deterministic capability router | Capability-matching model |
+| L1 Physical Form | LangGraph | Any execution substrate |
+
+Swapping a fine-tuned small model into any layer requires no architectural change — only a component swap behind the layer interface. The harness is the coordination structure; the models are pluggable.
+
+### Calibration as a first-class property
+
+A less visible but consequential consequence of the layered structure is calibration isolation. In a monolithic orchestrator, overconfidence at one reasoning level propagates freely. In CogTrace, each layer's output is checked by the MECC before it can affect the layer above. A verifier that returns a low-confidence match does not silently advance to a goal-level verdict — the constraint at L4 catches it and either blocks or escalates.
+
+This makes calibration failures visible and locatable. The Weave traces show exactly which layer a constraint fired at, which component produced the output, and what the outcome was. Debugging a calibration failure in a monolithic system means reading through a long trace and inferring where reasoning went wrong. In CogTrace, the layer and constraint are tagged on every span — the failure is observable by construction.
+
+This also enables meaningful longitudinal tracking. Because every MECC evaluation is a named span with a layer attribute, you can ask: across 100 runs, which layer fails most often? Which constraint fires most? Is the L4 assessor being invoked more than expected? These are questions a flat trace cannot answer.
+
+---
+
 ## Architecture: five AH layers
 
 | Layer | Name | CogTrace Component | Role |
@@ -49,6 +101,24 @@ MECC fires:
 - Before any verdict is emitted
 - Before any escalation is triggered
 - After any agent proposes an action
+
+The key distinction from a guardrails library or a policy checker: MECC is not a post-hoc filter. It runs before execution, checks upward across all layers, and either permits, blocks, or escalates. It does not just flag — it gates.
+
+---
+
+## Distributed cognition
+
+No single agent has the full picture:
+
+- **Parser** sees raw text — doesn't know if citations are real
+- **Retriever** sees API responses — doesn't know the claims
+- **Verifier** sees metadata matches — doesn't know semantic support
+- **Assessor** sees claim-source pairs — doesn't know API availability
+- **MECC** sees all constraints — doesn't execute any action
+
+Only the system together produces the answer. The architecture makes distributed cognition visible rather than hiding it inside a single orchestrator.
+
+This is not just a design pattern — it is the condition that enables smaller specialized models to work. Each component only needs to be good at its own slice. The coordination structure — the MECC and the layer interfaces — handles integration. Competence is distributed across the system rather than concentrated in one large model that must be good at everything.
 
 ---
 
@@ -99,20 +169,6 @@ Three independent sensor agents — seismic, tsunami, and impact — report on i
 ### Destructive Action
 
 A decision gate for proposed system operations. Irreversible or high-risk operations (dropping tables, deleting data) are blocked outright by hard L4 constraints. Borderline cases are escalated to L5 for human approval. Nothing is executed — this is an admissibility check, not an execution engine.
-
----
-
-## Distributed cognition
-
-No single agent has the full picture:
-
-- **Parser** sees raw text — doesn't know if citations are real
-- **Retriever** sees API responses — doesn't know the claims
-- **Verifier** sees metadata matches — doesn't know semantic support
-- **Assessor** sees claim-source pairs — doesn't know API availability
-- **MECC** sees all constraints — doesn't execute any action
-
-Only the system together produces the answer. The architecture makes distributed cognition visible rather than hiding it inside a single orchestrator.
 
 ---
 
@@ -172,6 +228,8 @@ The Weave span tree shows constraint checking is not flat. Violations surface at
 - **L5 spans**: synthesis checks (C007/C-SE007 scenario-complete gate)
 
 This layering is enforced at runtime by the MECC, not just described in documentation. The `ah_layer` attribute on each span makes the hierarchy directly observable in the Weave UI.
+
+The second thing to verify: how often the LLM assessor fires versus how often constraints resolve the outcome without it. In a well-structured harness, most decisions should be resolved by constraints. LLM invocations should be the exception, not the default. The `assessor_fired` scorer in the seismic evaluation makes this directly measurable.
 
 ---
 
@@ -257,4 +315,27 @@ tests/
 
 Those frameworks are excellent execution substrates. CogTrace uses LangGraph at L1 for exactly that purpose. What they don't provide is an explicit mechanism for cross-layer constraint enforcement — a way to ask, before any action executes, whether it is admissible with respect to constraints at all levels of abstraction above it. That is what the MECC provides, and it is what makes the harness more than a workflow runner.
 
+The distinction also matters for the distributed cognition end game. LangGraph, CrewAI, and AutoGen are all designed around the assumption that a large model is doing the reasoning and the framework is managing its flow. If you want to move toward an architecture where each layer is occupied by a smaller, specialized model, you need a coordination structure that does not assume a large central reasoner. The Abstraction Hierarchy provides that structure. The layer interfaces define what each component sees and what it is allowed to act on — independently of what model sits behind them.
+
 The distinction matters most in settings where human-agent collaboration is real and distributed — where multiple people each operate semi-autonomous agent ecosystems and must still coordinate effectively. Without a shared abstraction structure, collaboration collapses into either opaque agent-to-agent interactions or excessive routing back through humans. The Abstraction Hierarchy provides a principled coordination scaffold for those cases.
+
+---
+
+## Roadmap
+
+The current build is a proof of architecture. The path forward:
+
+**v2 — semantic constraints**
+- C005: claim support checking — does the cited source actually support the claim made? Requires embedding-based or LLM-based semantic comparison at L4.
+- Extend sensor escalation to multi-event batch reconciliation across time windows.
+
+**v3 — model substitution**
+- Replace deterministic L3 orchestrator with a small fine-tuned routing model. Measure whether constraint violation rates change.
+- Introduce a small L4 constraint model trained on MECC decisions. Compare against deterministic baseline.
+- Benchmark: does a specialized small model at L4 match the LLM assessor on the ambiguous cases while costing a fraction of the tokens?
+
+**v4 — multi-agent coordination scaffold**
+- Extend the harness to multi-human, multi-agent teams. Each human operator runs their own agent ecosystem; the AH provides the shared coordination layer.
+- Human-in-the-loop escalation at L5 becomes a structured handoff, not an interrupt.
+
+The architectural claim this roadmap tests: **distributed cognition with layer-scoped small models outperforms a single large orchestrator on cost, latency, and calibration** — because each component only has to be good at its own slice, and the constraint structure handles integration.
