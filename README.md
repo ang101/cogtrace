@@ -4,7 +4,7 @@
 
 CogTrace is a multi-agent harness that checks decisions against structured constraints across all abstraction layers — grounded in Rasmussen's Abstraction Hierarchy from cognitive engineering.
 
-> Built for the AGI Hackathon 2026. 
+`Python 3.11` · `Anthropic Claude Sonnet 4` · `LangGraph` · `W&B Weave` · `Streamlit` · `Crossref API` · `USGS API` · `Plotly`
 
 ---
 
@@ -22,7 +22,7 @@ The result is a harness that is less like an org chart and more like a constrain
 
 ## Why this architecture — token economics, model efficiency, and the distributed cognition thesis
 
-### The immediate problem: monolithic orchestrators are wasteful
+### Monolithic orchestrators are wasteful
 
 Most agentic systems today use a single large model as the orchestrator. That model receives the full context, reasons about what to do next, calls tools, receives results, and reasons again. Every step — including trivial routing decisions — pays full token cost for a frontier model.
 
@@ -34,7 +34,7 @@ CogTrace's architecture changes this as a direct consequence of structure, not o
 
 In the sensor escalation scenario, three sensor agents each hold a narrow slice of evidence. The cross-sensor MECC is the only component that sees all three simultaneously — and it is deterministic. For four of the five test cases, constraints resolve the outcome without a model call. The LLM fires only for the structurally ambiguous case: deep-focus earthquake, contradicting sensor readings, null PAGER alert.
 
-This is a structural property of the architecture, not a tuning choice. When constraints are explicit and layered, most decisions are resolved before they become model calls. The token savings are a consequence of knowing what each layer is responsible for and enforcing it before escalating upward.
+This is a structural property of the architecture, not a tuning choice. When constraints are explicit and layered, most decisions are resolved before they become model calls.
 
 ### The end game: smaller specialized models outperform large generalists
 
@@ -42,13 +42,11 @@ The deeper argument for this architecture is about what happens when each layer 
 
 A large generalist model forced to reason about goal-level objectives, workflow patterns, API contracts, and raw execution simultaneously faces structural disadvantages:
 
-- **Attention dilution** — relevant signals compete with irrelevant context across abstraction levels. The model attends to everything when it should attend to the layer's specific concern.
-- **Hallucination leakage** — uncertainty at one level propagates to another because the model holds both simultaneously. A model unsure whether an API exists may hallucinate confidence at the goal level.
-- **Context cost** — full-context reasoning at every step is expensive even when most of the context is irrelevant to the decision at hand. A workflow routing decision does not need to see raw execution logs.
+- **Attention dilution** — relevant signals compete with irrelevant context across abstraction levels
+- **Hallucination leakage** — uncertainty at one level propagates to another because the model holds both simultaneously
+- **Context cost** — full-context reasoning at every step, even when most context is irrelevant to the decision at hand
 
 A small model scoped to a single layer does not have these problems. It only sees what its layer is responsible for. The parser never sees API state. The verifier never sees goal-level objectives. The MECC never executes anything. Each component can be calibrated within its own representational domain — a much tighter target than calibrating a general-purpose orchestrator across all levels simultaneously.
-
-The research trajectory supports this direction. Smaller, domain-focused models — fine-tuned or distilled for a narrow task — increasingly match or exceed large generalists on those tasks. The open question is what the principled basis for scoping should be. Job title is not it: "researcher" and "reviewer" have no natural boundary in a reasoning system. Abstraction level is: scope by what a component needs to perceive, what invariants it is responsible for enforcing, and what means-ends relations it is allowed to act on.
 
 CogTrace is built so any layer can be occupied by any model — or no model at all:
 
@@ -187,49 +185,57 @@ The Streamlit dashboard pulls real latency data back from Weave spans and displa
 
 ---
 
-## For W&B Weave judges
+## Observability in depth
 
-### What to look for in the Weave UI
+The Weave trace tree is where the architecture becomes directly inspectable rather than just described. Each pipeline run produces a root span with a full child span tree: `_retrieve`/`_lookup_event` at L2, `MECC.evaluate` calls at L2–L5, and the LLM assessor only when ambiguous cases reach it at L4.
 
-**Traces tab** (project → Weave → Traces):
+Every `MECC.evaluate` span carries custom attributes via `weave.attributes()`:
+
+| Attribute | Example value |
+|---|---|
+| `ah_layer` | `4` |
+| `ah_layer_name` | `"Abstract Function (Constraint Reasoner)"` |
+| `mecc_action` | `"emit_verdict"` |
+| `scenario` | `"citationintegrity"` |
+
+Filtering the Weave trace tree by `ah_layer_name` shows all constraint checks at a given abstraction level across every run — making it straightforward to see whether failures cluster at workflow orchestration (L3), constraint evaluation (L4), or purpose-level synthesis (L5). Spans with non-empty `violated_constraints` in their output are the failure events.
+
+The constraint hierarchy is not flat in the traces either. L3 spans appear earlier in the tree than L4 spans for the same run — L3 workflow checks (C008 no identifier, C007 nothing verifiable) gate whether L4 evaluation runs at all. This is the MECC enforcing the hierarchy at runtime, not just at design time.
+
+**What to look for in the Weave UI:**
+
+*Traces tab* (project → Weave → Traces):
 - Each pipeline run is a root span: `CitationIntegrityScenario.evaluate` or `SeismicEscalationScenario.evaluate`
 - Expand any root span to see the full child span tree: `_retrieve`/`_lookup_event` (L2), `MECC.evaluate` × N (L2–L5), `assess`/`judge` (L4, LLM only when ambiguous)
-- Every `MECC.evaluate` span carries custom attributes set via `weave.attributes()`:
-  - `ah_layer` — integer (2, 3, 4, or 5)
-  - `ah_layer_name` — e.g. `"Abstract Function (Constraint Reasoner)"`
-  - `mecc_action` — e.g. `"emit_verdict"`, `"parse_citation"`, `"scenario_complete"`
-  - `scenario` — `"citationintegrity"` or `"sensorescalation"`
-- Use the Weave filter bar to slice the trace tree by `ah_layer_name` — this shows all MECC checks at a given abstraction level across all runs
+- Use the filter bar to slice by `ah_layer_name` — shows all MECC checks at a given abstraction level across all runs
 - Spans with non-empty `violated_constraints` in their output are the failure events
 
-**Evaluations tab** (project → Weave → Evaluations):
-
-Run these to populate the Evaluations tab:
-```bash
-python tests/eval_citation_integrity.py
-python tests/eval_sensor_escalation.py
-```
-
+*Evaluations tab* (project → Weave → Evaluations):
 - `agah-citation-integrity-v1` — 5 test cases, 3 scorers: `verdict_correct`, `constraint_fired`, `pipeline_health`
 - `agah-seismic-escalation-v1` — 5 test cases, 4 scorers including `assessor_fired` — the architectural claim: the LLM assessor fires for `us6000abcd4` (C-SE005 cross-agent inconsistency) but NOT for hard-constraint events like `us6000abcd3` (C-SE002 tsunami). This is verifiable in the evaluation results.
 
-**Tables / workspace** (project → workspace):
+*Tables / workspace* (project → workspace):
 - `citationintegrity/verdict_log` — per-item verdict table accumulating across all demo runs
 - `citationintegrity/mecc_violations`, `total_items` — scalar metrics per run, charted over time
 - `*/human_feedback` — 👍/👎 ratings submitted from the Streamlit UI
 
-### The architectural claim the traces demonstrate
+### Evaluations
 
-The Weave span tree shows constraint checking is not flat. Violations surface at different AH layers depending on what kind of constraint fired:
+Two scored evaluation sets are included:
 
-- **L2 spans**: capability routing checks (API gate before any retrieval)
-- **L3 spans**: workflow-level checks (C008 no identifier, C007 nothing verifiable) — fire before any L4 evaluation
-- **L4 spans**: bibliographic and sensor constraint checks (the main verification logic)
-- **L5 spans**: synthesis checks (C007/C-SE007 scenario-complete gate)
+```bash
+python tests/eval_citation_integrity.py   # 5 cases, 3 scorers
+python tests/eval_sensor_escalation.py    # 5 cases, 4 scorers
+```
 
-This layering is enforced at runtime by the MECC, not just described in documentation. The `ah_layer` attribute on each span makes the hierarchy directly observable in the Weave UI.
+The seismic evaluation includes an `assessor_fired` scorer that verifies a specific architectural claim: the LLM assessor invokes for `us6000abcd4` (C-SE005 cross-agent inconsistency) but is deliberately suppressed for hard-constraint events like `us6000abcd3` (C-SE002 tsunami). The evaluation result makes this claim falsifiable and auditable.
 
-The second thing to verify: how often the LLM assessor fires versus how often constraints resolve the outcome without it. In a well-structured harness, most decisions should be resolved by constraints. LLM invocations should be the exception, not the default. The `assessor_fired` scorer in the seismic evaluation makes this directly measurable.
+### Dashboard metrics
+
+Each run logs to the W&B classic workspace:
+- `*/verdict_log` — per-item verdict table accumulating across runs
+- `*/mecc_violations`, `*/total_items` — scalar metrics charted over time
+- `*/human_feedback` — 👍/👎 ratings from the Streamlit UI, logged as a signal on run quality
 
 ---
 
