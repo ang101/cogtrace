@@ -4,7 +4,7 @@
 
 CogTrace is a multi-agent harness that checks decisions against structured constraints across all abstraction layers — grounded in Rasmussen's Abstraction Hierarchy from cognitive engineering.
 
-> Built for the AGI Hackathon 2026. Two prize tracks: Most Sophisticated Harness and Best Use of W&B Weave.
+> Built for the AGI Hackathon 2026. 
 
 ---
 
